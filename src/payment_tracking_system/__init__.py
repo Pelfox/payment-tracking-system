@@ -1,58 +1,97 @@
-import datetime
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
-def print_payment(
-    payer: str,
-    account_number: str,
-    bill_amount: float,
-    payment_amount: float,
-    payment_method: str,
-) -> None:
-    payment_date = datetime.datetime.now()
-    if payment_amount <= 0:
-        print("\nОшибка: сумма платежа должна быть больше нуля.")
+from pydantic import ValidationError
 
-    else:
-        if payment_method == "карта":
-            commission = payment_amount * 0.01
-        else:
-            commission = 0
+from payment_tracking_system.exceptions import PaymentStorageError
+from payment_tracking_system.models import (
+    Invoice,
+    Payer,
+    Payment,
+    PaymentMethod,
+    PaymentResult,
+    PaymentStatus,
+)
+from payment_tracking_system.processing import process_payments
+from payment_tracking_system.repositories import (
+    JsonPaymentRepository,
+    PaymentRepository,
+)
 
-        total_payment = payment_amount + commission
-        difference = bill_amount - payment_amount
+PAYMENTS_FILE = Path("data/payments.json")
 
-        print("\n=== Информация о платеже ===")
-        print("Плательщик:", payer)
-        print("Номер счёта:", account_number)
-        print("Сумма счёта:", bill_amount, "руб.")
-        print("Сумма платежа:", payment_amount, "руб.")
-        print("Комиссия:", commission, "руб.")
-        print("Итого списано:", total_payment, "руб.")
-        print("Дата платежа:", payment_date)
 
-        if payment_amount == bill_amount:
-            print("Статус: счёт оплачен полностью.")
+def print_payment(result: PaymentResult) -> None:
+    payment = result.payment
 
-        elif payment_amount < bill_amount:
-            print("Статус: частичная оплата.")
-            print("Осталось оплатить:", difference, "руб.")
+    print("\n=== Информация о платеже ===")
+    print("Плательщик:", payment.payer.full_name)
+    print("Номер счёта:", payment.invoice.account_number)
+    print("Сумма счёта:", payment.invoice.amount, "руб.")
+    print("Сумма платежа:", payment.amount, "руб.")
+    print("Комиссия:", result.commission, "руб.")
+    print("Итого списано:", result.total_charged, "руб.")
+    print("Дата платежа:", payment.paid_at)
+    print("Статус:", result.status.value)
 
-        else:
-            overpayment = payment_amount - bill_amount
-            print("Статус: переплата.")
-            print("Сумма переплаты:", overpayment, "руб.")
+    if result.status is PaymentStatus.PARTIALLY_PAID:
+        print("Осталось оплатить:", result.remaining_amount, "руб.")
+    elif result.status is PaymentStatus.OVERPAID:
+        print("Сумма переплаты:", result.overpayment, "руб.")
+
+
+def input_payment() -> Payment:
+    """Запросить у пользователя данные одного платежа."""
+    payer = Payer(full_name=input("Введите ФИО плательщика: "))
+    invoice = Invoice(
+        account_number=input("Введите номер счёта: "),
+        amount=Decimal(input("Введите сумму счёта: ")),
+    )
+    return Payment(
+        payer=payer,
+        invoice=invoice,
+        amount=Decimal(input("Введите сумму платежа: ")),
+        method=PaymentMethod(input("Способ оплаты (карта/наличные): ").lower()),
+    )
+
+
+def run(repository: PaymentRepository) -> None:
+    print("=== Система учёта платежей ===")
+    payments: list[Payment] = []
+
+    while True:
+        try:
+            payments.append(input_payment())
+        except (InvalidOperation, ValueError, ValidationError) as error:
+            print(f"Ошибка ввода: {error}")
+            print("Попробуйте ввести платёж ещё раз.\n")
+            continue
+        except (EOFError, KeyboardInterrupt):
+            print("\nВвод платежей завершён.")
+            break
+
+        try:
+            answer = input("Добавить ещё один платёж? (да/нет): ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nВвод платежей завершён.")
+            break
+
+        if answer not in {"да", "д"}:
+            break
+
+    for result in process_payments(payments):
+        repository.save(result)
+
+    print(f"\n=== Сохранённые платежи: {repository.count()} ===")
+    for result in repository.get_all():
+        print_payment(result)
 
 
 def main() -> None:
-    print("=== Система учёта платежей ===")
-
-    payer = input("Введите ФИО плательщика: ")
-    account_number = input("Введите номер счёта: ")
-
-    bill_amount = float(input("Введите сумму счёта: "))
-    payment_amount = float(input("Введите сумму платежа: "))
-    payment_method = input("Способ оплаты (карта/наличные): ")
-
-    print_payment(payer, account_number, bill_amount, payment_amount, payment_method)
+    try:
+        run(JsonPaymentRepository(PAYMENTS_FILE))
+    except PaymentStorageError as error:
+        print(f"Ошибка хранилища: {error}")
 
 
 if __name__ == "__main__":
