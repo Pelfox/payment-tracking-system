@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<section class="card text-center">
+    <div class="card-body py-5 px-3 px-md-5">
+        <p class="display-1 fw-bold text-primary">{{ status_code }}</p>
+        <h1 class="h2 fw-bold">{{ title }}</h1>
+        <p class="text-body-secondary mb-4">{{ message }}</p>
+        {% if back_to_payments %}
+        <a class="btn btn-primary" href="{% url 'payments:list' %}">К списку платежей</a>
+        {% else %}
+        <a class="btn btn-primary" href="{% url 'homepage:index' %}">На главную</a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

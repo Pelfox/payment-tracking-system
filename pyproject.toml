@@ -3,13 +3,9 @@ name = "payment-tracking-system"
 version = "0.1.0"
 description = "Tracking system for payments."
 readme = "README.md"
-authors = [
-    { name = "Aleksey Demchenkov", email = "contact@pelfox.dev" }
-]
+authors = [{ name = "Aleksey Demchenkov", email = "contact@pelfox.dev" }]
 requires-python = ">=3.13"
-dependencies = [
-    "pydantic>=2.13.5",
-]
+dependencies = ["django>=5.2.8,<5.3", "pydantic>=2.13.5"]
 
 [project.scripts]
 payment-tracking-system = "payment_tracking_system:main"
@@ -19,7 +15,4 @@ requires = ["uv_build>=0.12.10,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = [
-    "pytest>=9.1.1",
-    "ruff>=0.16.6",
-]
+dev = ["flake8>=7.4.1", "pytest>=9.1.1", "ruff>=0.16.6"]

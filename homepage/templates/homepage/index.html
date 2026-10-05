@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Система отслеживания платежей{% endblock %}
+
+{% block content %}
+<section class="row align-items-center g-4 g-lg-5 py-md-4">
+    <div class="col-lg-7">
+        <p class="text-primary text-uppercase small fw-semibold">Личный учёт</p>
+        <h1 class="display-5 fw-bold mb-4">Система отслеживания платежей</h1>
+        <p class="lead text-body-secondary mb-4">Платежи, счета и комиссии в одном месте.
+            Узнайте, что оплачено, сколько осталось внести и где есть переплата.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary btn-lg" href="{% url 'payments:list' %}">Посмотреть платежи</a>
+            <a class="btn btn-outline-secondary btn-lg" href="{% url 'payments:summary' %}">Сводка</a>
+        </div>
+    </div>
+    <aside class="col-lg-5" aria-label="Возможности системы">
+        <div class="card border-0 bg-primary-subtle">
+            <div class="card-body p-4">
+                <h2 class="h4 fw-bold mb-4">Вся информация об оплате</h2>
+                <ul class="list-unstyled mb-0">
+                    <li class="border-top pt-3">
+                        <strong>Платежи и плательщики</strong>
+                        <p class="text-body-secondary small">Счёт, сумма, способ и дата каждой операции.</p>
+                    </li>
+                    <li class="border-top pt-3">
+                        <strong>Понятные статусы</strong>
+                        <p class="text-body-secondary small">Полная и частичная оплата, остаток и переплата.</p>
+                    </li>
+                    <li class="border-top pt-3">
+                        <strong>Общая картина</strong>
+                        <p class="text-body-secondary small mb-0">Суммы платежей, комиссии и распределение по статусам.
+                        </p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </aside>
+</section>
+{% endblock %}

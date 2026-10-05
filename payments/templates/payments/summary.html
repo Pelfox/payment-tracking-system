@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Сводка платежей{% endblock %}
+
+{% block content %}
+<h1 class="fw-bold">Сводка платежей</h1>
+<p class="text-body-secondary mb-4">
+    Итоги по всем сохранённым операциям.
+</p>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <dl class="border rounded-3 bg-body p-4 h-100 mb-0">
+            <dt class="small text-body-secondary fw-normal">
+                Всего платежей
+            </dt>
+            <dd class="fs-3 fw-semibold text-break mb-0 mt-2">
+                {{ payment_count }}
+            </dd>
+        </dl>
+    </div>
+    <div class="col-md-4">
+        <dl class="border rounded-3 bg-body p-4 h-100 mb-0">
+            <dt class="small text-body-secondary fw-normal">
+                Общая сумма платежей
+            </dt>
+            <dd class="fs-3 fw-semibold text-break mb-0 mt-2">
+                {{ total_amount|floatformat:"2u" }} руб.
+            </dd>
+        </dl>
+    </div>
+    <div class="col-md-4">
+        <dl class="border rounded-3 bg-body p-4 h-100 mb-0">
+            <dt class="small text-body-secondary fw-normal">
+                Общая комиссия
+            </dt>
+            <dd class="fs-3 fw-semibold text-break mb-0 mt-2">
+                {{ total_commission|floatformat:"2u" }} руб.
+            </dd>
+        </dl>
+    </div>
+</div>
+<div class="table-responsive bg-body border rounded-3">
+    <table class="table align-middle caption-top mb-0">
+        <caption class="px-3 py-3">
+            Количество платежей по статусам
+        </caption>
+        <thead class="table-light">
+            <tr>
+                <th scope="col" class="px-3">Статус</th>
+                <th scope="col">Количество</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for status, count in status_counts %}
+            <tr>
+                <th scope="row" class="px-3 py-3">
+                    {% include "payments/includes/status.html" with status=status only %}
+                </th>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

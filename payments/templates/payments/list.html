@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Платежи{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row align-items-start justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="fw-bold">
+            Платежи
+        </h1>
+        <p class="text-body-secondary mb-0">
+            Все сохранённые операции. Выберите плательщика, чтобы открыть подробности платежа.
+        </p>
+    </div>
+    <a class="btn btn-outline-secondary text-nowrap" href="{% url 'payments:summary' %}">
+        Сводка
+    </a>
+</div>
+{% if results %}
+<div class="table-responsive bg-body border rounded-3" tabindex="0" role="region" aria-label="Таблица платежей">
+    <table class="table table-hover align-middle caption-top mb-0">
+        <caption class="px-3 py-3">
+            Сохранённые платежи: {{ results|length }}
+        </caption>
+        <thead class="table-light">
+            <tr>
+                <th scope="col" class="px-3">
+                    Плательщик
+                </th>
+                <th scope="col">
+                    Счёт
+                </th>
+                <th scope="col" class="text-nowrap">
+                    Сумма платежа
+                </th>
+                <th scope="col" class="text-nowrap">
+                    Способ оплаты
+                </th>
+                <th scope="col">
+                    Дата
+                </th>
+                <th scope="col" class="pe-3">
+                    Статус
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+            <tr>
+                <td class="px-3 py-3 text-break">
+                    <a href="{% url 'payments:detail' result.payment.id %}">
+                        {{ result.payment.payer.full_name }}
+                    </a>
+                </td>
+                <td class="text-break">
+                    {{ result.payment.invoice.account_number }}
+                </td>
+                <td class="text-nowrap">
+                    {{ result.payment.amount|floatformat:"2u" }} руб.
+                </td>
+                <td>
+                    {{ result.payment.method.value }}
+                </td>
+                <td>
+                    {% include "payments/includes/date.html" with value=result.payment.paid_at only %}
+                </td>
+                <td class="pe-3">
+                    {% include "payments/includes/status.html" with status=result.status only %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<section class="card text-center">
+    <div class="card-body py-5">
+        <h2 class="h4">Сохранённых платежей пока нет.</h2>
+        <p class="text-body-secondary">Здесь появятся ваши платежи, их статусы и ссылки на подробную информацию.</p>
+        <a class="btn btn-outline-secondary" href="{% url 'homepage:index' %}">На главную</a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,6 @@
+{% load tz %}
+{% if value.tzinfo %}
+{{ value|localtime|date:"d.m.Y H:i T" }}
+{% else %}
+{{ value|date:"d.m.Y H:i" }}
+{% endif %}
