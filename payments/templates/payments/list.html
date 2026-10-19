@@ -17,8 +17,18 @@
     </a>
 </div>
 {% if results %}
+<div class="payment-filter mb-3" data-payment-filter hidden>
+    <label for="payment-status-filter" class="form-label">Статус платежа</label>
+    <select id="payment-status-filter" class="form-select" data-status-filter aria-controls="payment-rows">
+        <option value="">Все статусы</option>
+        {% for status in statuses %}
+        <option value="{{ status.name }}">{{ status.value|capfirst }}</option>
+        {% endfor %}
+    </select>
+    <p class="small text-body-secondary mt-2 mb-0" data-filter-count role="status" aria-live="polite"></p>
+</div>
 <div class="table-responsive bg-body border rounded-3" tabindex="0" role="region" aria-label="Таблица платежей">
-    <table class="table table-hover align-middle caption-top mb-0">
+    <table class="table payment-table table-hover align-middle caption-top mb-0">
         <caption class="px-3 py-3">
             Сохранённые платежи: {{ results|length }}
         </caption>
@@ -44,9 +54,9 @@
                 </th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="payment-rows">
             {% for result in results %}
-            <tr>
+            <tr data-payment-status="{{ result.status.name }}">
                 <td class="px-3 py-3 text-break">
                     <a href="{% url 'payments:detail' result.payment.id %}">
                         {{ result.payment.payer.full_name }}
@@ -72,6 +82,7 @@
         </tbody>
     </table>
 </div>
+<p class="text-body-secondary mt-3" data-filter-empty hidden>Платежей с выбранным статусом нет.</p>
 {% else %}
 <section class="card text-center">
     <div class="card-body py-5">

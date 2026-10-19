@@ -1,4 +1,4 @@
 <span
-    class="badge {% if status.name == 'PAID' %}text-bg-success{% elif status.name == 'PARTIALLY_PAID' %}text-bg-warning{% else %}text-bg-info{% endif %}">
+    class="badge payment-status {% if status.name == 'PAID' %}text-bg-success{% elif status.name == 'PARTIALLY_PAID' %}text-bg-warning{% else %}text-bg-info{% endif %}">
     {{ status.value }}
 </span>

@@ -1,0 +1,14 @@
+{% load static %}
+<header class="site-header">
+    <div class="container site-header-content">
+        <a class="site-brand" href="{% url 'homepage:index' %}">
+            <img src="{% static 'homepage/img/logo.svg' %}" alt="" class="site-logo" width="40" height="40">
+            <span>Учёт платежей</span>
+        </a>
+        <nav class="site-navigation" aria-label="Основная навигация">
+            <a href="{% url 'homepage:index' %}"{% if request.resolver_match.view_name == 'homepage:index' %} aria-current="page"{% endif %}>Главная</a>
+            <a href="{% url 'payments:list' %}"{% if request.resolver_match.view_name == 'payments:list' %} aria-current="page"{% endif %}>Платежи</a>
+            <a href="{% url 'payments:summary' %}"{% if request.resolver_match.view_name == 'payments:summary' %} aria-current="page"{% endif %}>Сводка</a>
+        </nav>
+    </div>
+</header>

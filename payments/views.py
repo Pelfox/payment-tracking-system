@@ -37,7 +37,7 @@ def payment_list(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "payments/list.html",
-        {"results": results},
+        {"results": results, "statuses": list(PaymentStatus)},
     )
 
 
