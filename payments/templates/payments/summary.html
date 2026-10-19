@@ -62,4 +62,68 @@
         </tbody>
     </table>
 </div>
+<section class="mt-4">
+    <h2 class="h4">Размер платежей</h2>
+    <p>
+        Минимальный: {{ min_amount|floatformat:"2u" }} руб.;
+        максимальный: {{ max_amount|floatformat:"2u" }} руб.;
+        средний: {{ avg_amount|floatformat:"2u" }} руб.
+    </p>
+</section>
+<section class="mt-4">
+    <h2 class="h4">Способы оплаты</h2>
+    <div class="table-responsive bg-body border rounded-3">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Способ</th>
+                    <th>Количество</th>
+                    <th>Сумма</th>
+                    <th>Комиссия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for method in method_totals %}
+                <tr>
+                    <td>{{ method.method }}</td>
+                    <td>{{ method.payment_count }}</td>
+                    <td>{{ method.amount|floatformat:"2u" }} руб.</td>
+                    <td>{{ method.commission|floatformat:"2u" }} руб.</td>
+                </tr>
+                {% empty %}<tr>
+                    <td colspan="4">Платежей пока нет.</td>
+                </tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+<section class="mt-4">
+    <h2 class="h4">Активность плательщиков</h2>
+    <form method="get" action="{% url 'payments:summary' %}" class="my-3">
+        {{ statistics_form.as_p }}
+        <button type="submit" class="btn btn-outline-primary">Показать</button>
+    </form>
+    <div class="table-responsive bg-body border rounded-3">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Плательщик</th>
+                    <th>Количество операций</th>
+                    <th>Сумма</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payer in payer_statistics %}
+                <tr>
+                    <td><a href="{% url 'payments:search' %}?payer_id={{ payer.id }}">{{ payer.full_name }}</a></td>
+                    <td>{{ payer.payment_count }}</td>
+                    <td>{{ payer.amount|floatformat:"2u" }} руб.</td>
+                </tr>
+                {% empty %}<tr>
+                    <td colspan="3">Нет плательщиков, соответствующих условию.</td>
+                </tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Платежи{% endblock %}
+{% block title %}{% if partial_only %}Частичная оплата{% else %}Платежи{% endif %}{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column flex-md-row align-items-start justify-content-between gap-3 mb-4">
     <div>
         <h1 class="fw-bold">
-            Платежи
+            {% if partial_only %}Частичная оплата{% else %}Платежи{% endif %}
         </h1>
         <p class="text-body-secondary mb-0">
-            Все сохранённые операции. Выберите плательщика, чтобы открыть подробности платежа.
+            {% if partial_only %}Операции, сумма которых меньше суммы счёта.{% else %}Все сохранённые операции. Выберите плательщика, чтобы открыть подробности платежа.{% endif %}
         </p>
     </div>
     <a class="btn btn-outline-secondary text-nowrap" href="{% url 'payments:summary' %}">
@@ -86,7 +86,7 @@
 {% else %}
 <section class="card text-center">
     <div class="card-body py-5">
-        <h2 class="h4">Сохранённых платежей пока нет.</h2>
+        <h2 class="h4">{% if partial_only %}Операций с частичной оплатой нет.{% else %}Сохранённых платежей пока нет.{% endif %}</h2>
         <p class="text-body-secondary">Здесь появятся ваши платежи, их статусы и ссылки на подробную информацию.</p>
         <a class="btn btn-outline-secondary" href="{% url 'homepage:index' %}">На главную</a>
     </div>

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Плательщики{% endblock %}
+{% block content %}
+<h1 class="fw-bold">Плательщики</h1>
+<p class="text-body-secondary">Выберите плательщика, чтобы найти его платежи.</p>
+<ul class="list-group">
+    {% for payer in payers %}
+    <li class="list-group-item">
+        <a href="{% url 'payments:search' %}?payer_id={{ payer.id }}">{{ payer.full_name }}</a>
+    </li>
+    {% empty %}<li class="list-group-item">Плательщиков пока нет.</li>{% endfor %}
+</ul>
+{% endblock %}

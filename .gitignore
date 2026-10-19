@@ -6,6 +6,7 @@
 
 # Runtime payment data
 /data/*.json*
+/data/*.sqlite*
 
 ### Linux ###
 *~
