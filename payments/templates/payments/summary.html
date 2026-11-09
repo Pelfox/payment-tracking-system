@@ -71,6 +71,14 @@
     </p>
 </section>
 <section class="mt-4">
+    <h2 class="h4">Остатки и переплаты по операциям</h2>
+    <p>
+        Сумма остатков в операциях с частичной оплатой: {{ total_remaining|floatformat:"2u" }} руб.;
+        сумма переплат: {{ total_overpayment|floatformat:"2u" }} руб.
+    </p>
+    <p>Счетов без платежей: {{ invoices_without_payments }}.</p>
+</section>
+<section class="mt-4">
     <h2 class="h4">Способы оплаты</h2>
     <div class="table-responsive bg-body border rounded-3">
         <table class="table mb-0">
@@ -117,7 +125,7 @@
                 <tr>
                     <td><a href="{% url 'payments:search' %}?payer_id={{ payer.id }}">{{ payer.full_name }}</a></td>
                     <td>{{ payer.payment_count }}</td>
-                    <td>{{ payer.amount|floatformat:"2u" }} руб.</td>
+                    <td>{{ payer.payment_amount|floatformat:"2u" }} руб.</td>
                 </tr>
                 {% empty %}<tr>
                     <td colspan="3">Нет плательщиков, соответствующих условию.</td>

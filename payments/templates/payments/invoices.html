@@ -16,7 +16,7 @@
             {% for invoice in invoices %}
             <tr>
                 <td>{{ invoice.account_number }}</td>
-                <td>{{ invoice.payer_name }}</td>
+                <td>{{ invoice.payer.full_name }}</td>
                 <td>{{ invoice.amount|floatformat:"2u" }} руб.</td>
             </tr>
             {% empty %}<tr>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Платёж {{ result.payment.id }}{% endblock %}
+{% block title %}Платёж {{ payment.id }}{% endblock %}
 
 {% block content %}
 <div class="row g-3 align-items-start mb-4">
@@ -9,7 +9,7 @@
             Информация о платеже
         </h1>
         <p class="font-monospace small text-body-secondary text-break mb-0">
-            ID: {{ result.payment.id }}
+            ID: {{ payment.id }}
         </p>
     </div>
     <div class="col-md-auto">
@@ -25,67 +25,67 @@
                 Плательщик
             </dt>
             <dd class="col-sm-8 text-break">
-                {{ result.payment.payer.full_name }}
+                {{ payment.invoice.payer.full_name }}
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Номер счёта
             </dt>
             <dd class="col-sm-8 text-break">
-                {{ result.payment.invoice.account_number }}
+                {{ payment.invoice.account_number }}
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Сумма счёта
             </dt>
             <dd class="col-sm-8">
-                {{ result.payment.invoice.amount|floatformat:"2u" }} руб.
+                {{ payment.invoice.amount|floatformat:"2u" }} руб.
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Сумма платежа
             </dt>
             <dd class="col-sm-8">
-                {{ result.payment.amount|floatformat:"2u" }} руб.
+                {{ payment.amount|floatformat:"2u" }} руб.
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Способ оплаты
             </dt>
             <dd class="col-sm-8">
-                {{ result.payment.method.value }}
+                {{ payment.get_method_display }}
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Дата платежа
             </dt>
             <dd class="col-sm-8">
-                {% include "payments/includes/date.html" with value=result.payment.paid_at only %}
+                {% include "payments/includes/date.html" with value=payment.paid_at only %}
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Статус
             </dt>
             <dd class="col-sm-8">
-                {% include "payments/includes/status.html" with status=result.status only %}
+                {% include "payments/includes/status.html" with status=payment.status_enum only %}
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Комиссия
             </dt>
             <dd class="col-sm-8">
-                {{ result.commission|floatformat:"2u" }} руб.
+                {{ payment.commission|floatformat:"2u" }} руб.
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Итого списано
             </dt>
             <dd class="col-sm-8">
-                {{ result.total_charged|floatformat:"2u" }} руб.
+                {{ payment.total_charged|floatformat:"2u" }} руб.
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Осталось оплатить
             </dt>
             <dd class="col-sm-8">
-                {{ result.remaining_amount|floatformat:"2u" }} руб.
+                {{ payment.remaining_amount|floatformat:"2u" }} руб.
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Переплата
             </dt>
             <dd class="col-sm-8">
-                {{ result.overpayment|floatformat:"2u" }} руб.
+                {{ payment.overpayment|floatformat:"2u" }} руб.
             </dd>
         </dl>
     </div>

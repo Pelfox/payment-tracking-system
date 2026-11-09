@@ -1,37 +1,24 @@
 import logging
-import sqlite3
-from datetime import UTC, datetime, time, timedelta
+import re
+from datetime import datetime, time, timedelta
 from functools import wraps
 from uuid import UUID
 
-from django.conf import settings
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.db import DatabaseError
+from django.db.models import Avg, Count, Max, Min, Q, Sum
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views.decorators.http import require_safe
 
-from db.queries import fetch_all, payment_result, rubles
 from payment_tracking_system.models import PaymentStatus
 
-from .forms import PayerStatisticsForm, PaymentSearchForm
+from .forms import PAYMENT_SORT_FIELDS, PayerStatisticsForm, PaymentSearchForm
+from .models import Invoice, Payer, Payment, rubles
 
 logger = logging.getLogger(__name__)
 PAGE_SIZE = 50
-
-
-def _storage_unavailable(request: HttpRequest) -> HttpResponse:
-    return render(
-        request,
-        "error.html",
-        {
-            "title": "Платежи временно недоступны",
-            "message": (
-                "Не удалось загрузить данные. Попробуйте открыть страницу позже."
-            ),
-            "status_code": 503,
-        },
-        status=503,
-    )
 
 
 def database_page(view):
@@ -39,36 +26,92 @@ def database_page(view):
     def wrapped(request, *args, **kwargs):
         try:
             return view(request, *args, **kwargs)
-        except (sqlite3.Error, OSError):
-            logger.exception("Не удалось получить данные платежей SQLite.")
-            return _storage_unavailable(request)
+        except DatabaseError:
+            logger.exception("Не удалось получить данные платежей через ORM.")
+            return render(
+                request,
+                "error.html",
+                {
+                    "title": "Платежи временно недоступны",
+                    "message": "Не удалось загрузить данные. Попробуйте позже.",
+                    "status_code": 503,
+                },
+                status=503,
+            )
 
     return wrapped
 
 
-def query(name, parameters=None):
-    return fetch_all(settings.PAYMENTS_DATABASE, name, parameters)
+def _payment_results(request, *, partial_only=False, search_only=False):
+    payers = Payer.objects.order_by("full_name", "pk").values("id", "full_name")
+    form = PaymentSearchForm(
+        request.GET if request.GET or not search_only else None, payers=payers
+    )
+    payments = Payment.objects.select_related("invoice__payer")
+    if partial_only:
+        payments = payments.filter(status=PaymentStatus.PARTIALLY_PAID.value)
 
+    valid = form.is_bound and form.is_valid()
+    page_obj = None
+    if valid:
+        data = form.cleaned_data
+        conditions = {key: data[key] for key in ("status", "method") if data[key]}
+        payments = payments.filter(**conditions)
+        if data["payer_id"] is not None:
+            payments = payments.filter(invoice__payer_id=data["payer_id"])
+        if data["min_amount"] is not None:
+            payments = payments.filter(amount_cents__gte=int(data["min_amount"] * 100))
+        if data["payer_name"]:
+            payments = payments.filter(
+                invoice__payer__full_name__iregex=re.escape(data["payer_name"])
+            )
+        if data["q"]:
+            payments = payments.filter(
+                Q(invoice__payer__full_name__iregex=re.escape(data["q"]))
+                | Q(invoice__account_number__iregex=re.escape(data["q"]))
+            )
+        if data["exclude_status"]:
+            payments = payments.exclude(status=data["exclude_status"])
+        if data["date_from"]:
+            start = timezone.make_aware(datetime.combine(data["date_from"], time.min))
+            payments = payments.filter(paid_at__gte=start)
+        if data["date_to"]:
+            end = timezone.make_aware(
+                datetime.combine(data["date_to"] + timedelta(days=1), time.min)
+            )
+            payments = payments.filter(paid_at__lt=end)
+        payments = payments.order_by(*PAYMENT_SORT_FIELDS[data["sort"] or "date"])
+        page_obj = Paginator(payments, PAGE_SIZE).get_page(request.GET.get("page"))
 
-@require_safe
-@database_page
-def payment_list(request: HttpRequest) -> HttpResponse:
-    results = [payment_result(row) for row in query("all_payments")]
     return render(
         request,
-        "payments/list.html",
+        "payments/search.html" if search_only else "payments/list.html",
         {
-            "results": results,
+            "form": form,
+            "payments": page_obj.object_list if page_obj is not None else [],
+            "page_obj": page_obj,
             "statuses": list(PaymentStatus),
+            "partial_only": partial_only,
+            "searched": form.is_bound,
         },
+        status=400 if form.is_bound and not valid else 200,
     )
 
 
 @require_safe
 @database_page
+def payment_list(request: HttpRequest) -> HttpResponse:
+    return _payment_results(request)
+
+
+@require_safe
+@database_page
 def payment_detail(request: HttpRequest, payment_id: UUID) -> HttpResponse:
-    rows = query("payment_detail", {"payment_id": str(payment_id)})
-    if not rows:
+    try:
+        payment = get_object_or_404(
+            Payment.objects.select_related("invoice__payer"), pk=payment_id
+        )
+    except Http404:
         return render(
             request,
             "error.html",
@@ -82,133 +125,99 @@ def payment_detail(request: HttpRequest, payment_id: UUID) -> HttpResponse:
             },
             status=404,
         )
-    return render(
-        request,
-        "payments/detail.html",
-        {
-            "result": payment_result(rows[0]),
-        },
-    )
+    return render(request, "payments/detail.html", {"payment": payment})
 
 
 @require_safe
 @database_page
 def partial_payments(request: HttpRequest) -> HttpResponse:
-    return render(
-        request,
-        "payments/list.html",
-        {
-            "results": [payment_result(row) for row in query("partial_payments")],
-            "statuses": list(PaymentStatus),
-            "partial_only": True,
-        },
-    )
+    return _payment_results(request, partial_only=True)
 
 
 @require_safe
 @database_page
 def payment_search(request: HttpRequest) -> HttpResponse:
-    form = PaymentSearchForm(request.GET or None, payers=query("payers"))
-    context = {"form": form, "results": [], "searched": form.is_bound}
-    if form.is_bound and form.is_valid():
-        data = form.cleaned_data
-        page = data.get("page") or 1
-        parameters = {
-            "status": data["status"] or None,
-            "method": data["method"] or None,
-            "payer_id": data["payer_id"],
-            "date_from": None,
-            "date_to": None,
-            "min_amount": (
-                int(data["min_amount"] * 100)
-                if data["min_amount"] is not None
-                else None
-            ),
-            "limit": PAGE_SIZE + 1,
-            "offset": (page - 1) * PAGE_SIZE,
-        }
-
-        for field in ("date_from", "date_to"):
-            value = data[field]
-            if value:
-                if field == "date_to":
-                    value += timedelta(days=1)
-                boundary = timezone.make_aware(datetime.combine(value, time.min))
-                parameters[field] = boundary.astimezone(UTC).isoformat(
-                    timespec="microseconds"
-                )
-        rows = query("search_payments", parameters)
-        context["results"] = [payment_result(row) for row in rows[:PAGE_SIZE]]
-        context["page"] = page
-        for direction, number, visible in (
-            ("previous", page - 1, page > 1),
-            ("next", page + 1, len(rows) > PAGE_SIZE),
-        ):
-            if visible:
-                params = request.GET.copy()
-                params["page"] = number
-                context[f"{direction}_query"] = params.urlencode()
-
-    invalid = form.is_bound and bool(form.errors)
-    return render(
-        request, "payments/search.html", context, status=400 if invalid else 200
-    )
+    return _payment_results(request, search_only=True)
 
 
 @require_safe
 @database_page
 def payer_list(request: HttpRequest) -> HttpResponse:
-    return render(request, "payments/payers.html", {"payers": query("payers")})
+    payers = Payer.objects.annotate(
+        invoice_count=Count("invoices", distinct=True),
+        payment_count=Count("invoices__payments"),
+    ).order_by("full_name", "pk")
+    return render(request, "payments/payers.html", {"payers": payers})
 
 
 @require_safe
 @database_page
 def invoice_list(request: HttpRequest) -> HttpResponse:
-    invoices = [dict(row) for row in query("invoices")]
-    payers = {row["id"]: row["full_name"] for row in query("payers")}
-    for invoice in invoices:
-        invoice["amount"] = rubles(invoice["amount_cents"])
-        invoice["payer_name"] = payers[invoice["payer_id"]]
+    invoices = Invoice.objects.select_related("payer").order_by("account_number", "pk")
     return render(request, "payments/invoices.html", {"invoices": invoices})
 
 
 @require_safe
 @database_page
 def payment_summary(request: HttpRequest) -> HttpResponse:
-    totals = query("payment_totals")[0]
-    counts = {row["status"]: row["payment_count"] for row in query("status_counts")}
-    methods = [dict(row) for row in query("method_totals")]
+    totals = Payment.objects.aggregate(
+        total_amount_cents=Sum("amount_cents", default=0),
+        total_commission_cents=Sum("commission_cents", default=0),
+        min_amount_cents=Min("amount_cents", default=0),
+        max_amount_cents=Max("amount_cents", default=0),
+        avg_amount_cents=Avg("amount_cents", default=0),
+    )
+    partial_totals = Payment.objects.filter(
+        status=PaymentStatus.PARTIALLY_PAID.value
+    ).aggregate(remaining_cents=Sum("remaining_cents", default=0))
+    overpaid_totals = Payment.objects.filter(
+        status=PaymentStatus.OVERPAID.value
+    ).aggregate(overpayment_cents=Sum("overpayment_cents", default=0))
+    counts = {
+        row["status"]: row["payment_count"]
+        for row in Payment.objects.values("status").annotate(payment_count=Count("pk"))
+    }
+    methods = list(
+        Payment.objects.values("method")
+        .annotate(
+            payment_count=Count("pk"),
+            amount_cents=Sum("amount_cents"),
+            commission_cents=Sum("commission_cents"),
+        )
+        .order_by("method")
+    )
     for method in methods:
         method["amount"] = rubles(method["amount_cents"])
         method["commission"] = rubles(method["commission_cents"])
     form = PayerStatisticsForm(request.GET)
     valid = form.is_valid()
-    min_count = (form.cleaned_data.get("min_count") or 0) if valid else 0
-    payers = (
-        [
-            dict(row)
-            for row in query(
-                "payer_statistics",
-                {
-                    "min_count": min_count,
-                },
+    payers = []
+    if valid:
+        payers = list(
+            Payer.objects.annotate(
+                payment_count=Count("invoices__payments"),
+                amount_cents=Sum("invoices__payments__amount_cents", default=0),
             )
-        ]
-        if valid
-        else []
-    )
-    for payer in payers:
-        payer["amount"] = rubles(payer["amount_cents"])
+            .filter(payment_count__gt=form.cleaned_data.get("min_count") or 0)
+            .order_by("-payment_count", "full_name", "pk")
+        )
+        for payer in payers:
+            payer.payment_amount = rubles(payer.amount_cents)
     return render(
         request,
         "payments/summary.html",
         {
-            "payment_count": query("payment_count")[0]["payment_count"],
+            "payment_count": Payment.objects.count(),
             "total_amount": rubles(totals["total_amount_cents"]),
             "total_commission": rubles(totals["total_commission_cents"]),
             "min_amount": rubles(totals["min_amount_cents"]),
             "max_amount": rubles(totals["max_amount_cents"]),
             "avg_amount": rubles(totals["avg_amount_cents"]),
+            "total_remaining": rubles(partial_totals["remaining_cents"]),
+            "total_overpayment": rubles(overpaid_totals["overpayment_cents"]),
+            "invoices_without_payments": Invoice.objects.filter(
+                payments__isnull=True
+            ).count(),
             "status_counts": [(s, counts.get(s.value, 0)) for s in PaymentStatus],
             "method_totals": methods,
             "payer_statistics": payers,

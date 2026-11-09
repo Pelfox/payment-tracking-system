@@ -4,8 +4,23 @@ from django import forms
 
 from payment_tracking_system.models import PaymentMethod, PaymentStatus
 
+PAYMENT_SORT_FIELDS = {
+    "date": ("-paid_at", "id"),
+    "date_asc": ("paid_at", "id"),
+    "amount": ("amount_cents", "id"),
+    "amount_desc": ("-amount_cents", "id"),
+    "payer": ("invoice__payer__full_name", "-paid_at", "id"),
+    "invoice": ("invoice__account_number", "-paid_at", "id"),
+}
+
 
 class PaymentSearchForm(forms.Form):
+    q = forms.CharField(
+        label="Поиск по имени или номеру счёта", required=False, max_length=200
+    )
+    payer_name = forms.CharField(
+        label="ФИО плательщика содержит", required=False, max_length=200
+    )
     status = forms.ChoiceField(
         label="Статус",
         required=False,
@@ -15,6 +30,11 @@ class PaymentSearchForm(forms.Form):
         label="Способ оплаты",
         required=False,
         choices=[("", "Любой способ")] + [(m.value, m.value) for m in PaymentMethod],
+    )
+    exclude_status = forms.ChoiceField(
+        label="Исключить статус",
+        required=False,
+        choices=[("", "Не исключать")] + [(s.value, s.value) for s in PaymentStatus],
     )
     payer_id = forms.TypedChoiceField(
         label="Плательщик",
@@ -39,8 +59,17 @@ class PaymentSearchForm(forms.Form):
         max_digits=12,
         decimal_places=2,
     )
-    page = forms.IntegerField(
-        required=False, min_value=1, max_value=1_000_000, widget=forms.HiddenInput
+    sort = forms.ChoiceField(
+        label="Сортировка",
+        required=False,
+        choices=[
+            ("date", "Сначала новые"),
+            ("date_asc", "Сначала старые"),
+            ("amount", "Сумма по возрастанию"),
+            ("amount_desc", "Сумма по убыванию"),
+            ("payer", "По имени плательщика"),
+            ("invoice", "По номеру счёта"),
+        ],
     )
 
     def __init__(self, *args, payers=(), **kwargs):

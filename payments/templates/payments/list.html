@@ -16,9 +16,13 @@
         Сводка
     </a>
 </div>
-{% if results %}
+<details class="mb-4"{% if request.GET %} open{% endif %}>
+    <summary class="fw-semibold mb-3">Поиск и сортировка</summary>
+    {% include "payments/includes/search_form.html" %}
+</details>
+{% if payments %}
 <div class="payment-filter mb-3" data-payment-filter hidden>
-    <label for="payment-status-filter" class="form-label">Статус платежа</label>
+    <label for="payment-status-filter" class="form-label">Статус на текущей странице</label>
     <select id="payment-status-filter" class="form-select" data-status-filter aria-controls="payment-rows">
         <option value="">Все статусы</option>
         {% for status in statuses %}
@@ -30,7 +34,7 @@
 <div class="table-responsive bg-body border rounded-3" tabindex="0" role="region" aria-label="Таблица платежей">
     <table class="table payment-table table-hover align-middle caption-top mb-0">
         <caption class="px-3 py-3">
-            Сохранённые платежи: {{ results|length }}
+            Найдено платежей: {{ page_obj.paginator.count }}. На странице: {{ payments|length }}.
         </caption>
         <thead class="table-light">
             <tr>
@@ -55,27 +59,27 @@
             </tr>
         </thead>
         <tbody id="payment-rows">
-            {% for result in results %}
-            <tr data-payment-status="{{ result.status.name }}">
+            {% for payment in payments %}
+            <tr data-payment-status="{{ payment.status_enum.name }}">
                 <td class="px-3 py-3 text-break">
-                    <a href="{% url 'payments:detail' result.payment.id %}">
-                        {{ result.payment.payer.full_name }}
+                    <a href="{% url 'payments:detail' payment.id %}">
+                        {{ payment.invoice.payer.full_name }}
                     </a>
                 </td>
                 <td class="text-break">
-                    {{ result.payment.invoice.account_number }}
+                    {{ payment.invoice.account_number }}
                 </td>
                 <td class="text-nowrap">
-                    {{ result.payment.amount|floatformat:"2u" }} руб.
+                    {{ payment.amount|floatformat:"2u" }} руб.
                 </td>
                 <td>
-                    {{ result.payment.method.value }}
+                    {{ payment.get_method_display }}
                 </td>
                 <td>
-                    {% include "payments/includes/date.html" with value=result.payment.paid_at only %}
+                    {% include "payments/includes/date.html" with value=payment.paid_at only %}
                 </td>
                 <td class="pe-3">
-                    {% include "payments/includes/status.html" with status=result.status only %}
+                    {% include "payments/includes/status.html" with status=payment.status_enum only %}
                 </td>
             </tr>
             {% endfor %}
@@ -86,10 +90,11 @@
 {% else %}
 <section class="card text-center">
     <div class="card-body py-5">
-        <h2 class="h4">{% if partial_only %}Операций с частичной оплатой нет.{% else %}Сохранённых платежей пока нет.{% endif %}</h2>
-        <p class="text-body-secondary">Здесь появятся ваши платежи, их статусы и ссылки на подробную информацию.</p>
+        <h2 class="h4">{% if form.errors %}Проверьте условия поиска.{% elif request.GET %}По заданным условиям платежей нет.{% elif partial_only %}Операций с частичной оплатой нет.{% else %}Сохранённых платежей пока нет.{% endif %}</h2>
+        <p class="text-body-secondary">{% if form.errors %}Исправьте отмеченные поля и повторите поиск.{% elif request.GET %}Измените условия или сбросьте фильтры.{% else %}Здесь появятся ваши платежи, их статусы и ссылки на подробную информацию.{% endif %}</p>
         <a class="btn btn-outline-secondary" href="{% url 'homepage:index' %}">На главную</a>
     </div>
 </section>
 {% endif %}
+{% include "payments/includes/pagination.html" %}
 {% endblock %}

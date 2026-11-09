@@ -3,27 +3,11 @@
 {% block content %}
 <h1 class="fw-bold">Поиск платежей</h1>
 <p class="text-body-secondary">Выберите условия поиска. Даты указаны по московскому времени.</p>
-<form method="get" action="{% url 'payments:search' %}" class="card card-body mb-4">
-    {{ form.non_field_errors }}
-    <div class="row g-3">
-        {% for field in form.visible_fields %}
-        <div class="col-md-6 col-lg-4">
-            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-            {{ field }}
-            {{ field.errors }}
-        </div>
-        {% endfor %}
-    </div>
-    {{ form.page.errors }}
-    <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-primary" type="submit" name="search" value="1">Найти</button>
-        <a class="btn btn-outline-secondary" href="{% url 'payments:search' %}">Сбросить</a>
-    </div>
-</form>
-{% if results %}
+{% include "payments/includes/search_form.html" %}
+{% if payments %}
 <div class="table-responsive bg-body border rounded-3">
     <table class="table align-middle mb-0">
-        <caption class="px-3">Найденные платежи, страница {{ page }}</caption>
+        <caption class="px-3">Найденные платежи, страница {{ page_obj.number }}</caption>
         <thead>
             <tr>
                 <th>Плательщик</th>
@@ -35,16 +19,16 @@
             </tr>
         </thead>
         <tbody>
-            {% for result in results %}
+            {% for payment in payments %}
             <tr>
                 <td>
-                    <a href="{% url 'payments:detail' result.payment.id %}">{{ result.payment.payer.full_name }}</a>
+                    <a href="{% url 'payments:detail' payment.id %}">{{ payment.invoice.payer.full_name }}</a>
                 </td>
-                <td>{{ result.payment.invoice.account_number }}</td>
-                <td class="text-nowrap">{{ result.payment.amount|floatformat:"2u" }} руб.</td>
-                <td>{% include "payments/includes/date.html" with value=result.payment.paid_at only %}</td>
-                <td>{{ result.payment.method.value }}</td>
-                <td>{% include "payments/includes/status.html" with status=result.status only %}</td>
+                <td>{{ payment.invoice.account_number }}</td>
+                <td class="text-nowrap">{{ payment.amount|floatformat:"2u" }} руб.</td>
+                <td>{% include "payments/includes/date.html" with value=payment.paid_at only %}</td>
+                <td>{{ payment.get_method_display }}</td>
+                <td>{% include "payments/includes/status.html" with status=payment.status_enum only %}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -55,12 +39,5 @@
 {% elif not searched %}
 <p>Заполните условия и нажмите «Найти».</p>
 {% endif %}
-<nav aria-label="Страницы результатов" class="d-flex gap-2 mt-3">
-    {% if previous_query %}
-    <a class="btn btn-outline-secondary" href="{% url 'payments:search' %}?{{ previous_query }}">Назад</a>
-    {% endif %}
-    {% if next_query %}
-    <a class="btn btn-outline-secondary" href="{% url 'payments:search' %}?{{ next_query }}">Далее</a>
-    {% endif %}
-</nav>
+{% include "payments/includes/pagination.html" %}
 {% endblock %}
