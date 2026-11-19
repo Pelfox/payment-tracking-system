@@ -13,11 +13,17 @@
         </p>
     </div>
     <div class="col-md-auto">
+        {% if not payment.is_cancelled %}
+        <a class="btn btn-primary" href="{% url 'payments:update' payment.id %}">Редактировать</a>
+        {% endif %}
         <a class="btn btn-outline-secondary" href="{% url 'payments:list' %}">
             Все платежи
         </a>
     </div>
 </div>
+{% if payment.is_cancelled %}
+<div class="alert alert-secondary" role="status">Запись отменена {% include "payments/includes/date.html" with value=payment.cancelled_at only %}. Она сохранена в истории и исключена из сводки.</div>
+{% endif %}
 <section class="card" aria-label="Данные платежа">
     <div class="card-body p-3 p-md-4">
         <dl class="row gy-2 mb-0">
@@ -31,7 +37,7 @@
                 Номер счёта
             </dt>
             <dd class="col-sm-8 text-break">
-                {{ payment.invoice.account_number }}
+                <a href="{{ payment.invoice.get_absolute_url }}">{{ payment.invoice.account_number }}</a>
             </dd>
             <dt class="col-sm-4 text-body-secondary fw-normal">
                 Сумма счёта
@@ -90,4 +96,22 @@
         </dl>
     </div>
 </section>
+{% if payment.receipt %}
+<section class="card mt-4">
+    <div class="card-body">
+        <h2 class="h4">Квитанция</h2>
+        <a href="{{ payment.receipt.url }}"><img class="img-fluid rounded receipt-image" src="{{ payment.receipt.url }}" alt="Квитанция по платежу {{ payment.id }}"></a>
+    </div>
+</section>
+{% endif %}
+{% if not payment.is_cancelled %}
+<details class="mt-4">
+    <summary class="text-danger">Отменить запись платежа</summary>
+    <p class="mt-2">Запись останется в истории, но перестанет учитываться в сводке.</p>
+    <form method="post" action="{% url 'payments:cancel' payment.id %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-danger" type="submit">Подтвердить отмену</button>
+    </form>
+</details>
+{% endif %}
 {% endblock %}

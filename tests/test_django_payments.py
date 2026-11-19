@@ -136,7 +136,7 @@ def test_home_detail_and_missing_objects(client, payments):
     assert client.get("/").status_code == 200
     with CaptureQueriesContext(connection) as queries:
         response = client.get(reverse("payments:detail", args=[payments[1].pk]))
-    assert len(queries) == 1
+    assert len(queries) == 2  # Платёж с JOIN и счётчик счетов общей навигации.
     assert response.status_code == 200
     assert "Иван Иванов" in response.content.decode()
     assert "0.60" in response.content.decode()
@@ -204,6 +204,8 @@ def test_related_filter_partial_list_and_combined_conditions(client, payments):
         {"exclude_status": "unknown"},
         {"payer_id": "abc"},
         {"payer_id": "99999999"},
+        {"invoice_id": "abc"},
+        {"invoice_id": "99999999"},
         {"min_amount": "-1"},
         {"min_amount": "0.001"},
         {"min_amount": "NaN"},
@@ -254,20 +256,21 @@ def test_list_does_not_issue_queries_per_payment(client, payments):
     with CaptureQueriesContext(connection) as queries:
         response = client.get(reverse("payments:list"))
     assert response.status_code == 200
-    assert len(queries) == 3  # Список плательщиков, COUNT, одна страница с JOIN.
+    # Два списка выбора, COUNT для пагинации, страница с JOIN и общая навигация.
+    assert len(queries) == 5
 
 
 def test_statistics_and_objects_without_payments(client, payments):
     response = client.get(reverse("payments:summary"))
     context = response.context
     assert context["payment_count"] == 4
-    assert context["total_amount"] == Decimal("330")
+    assert context["total_amount"] == Decimal(330)
     assert context["total_commission"] == Decimal("1.10")
-    assert context["min_amount"] == Decimal("50")
-    assert context["max_amount"] == Decimal("120")
+    assert context["min_amount"] == Decimal(50)
+    assert context["max_amount"] == Decimal(120)
     assert context["avg_amount"] == Decimal("82.5")
-    assert context["total_remaining"] == Decimal("40")
-    assert context["total_overpayment"] == Decimal("20")
+    assert context["total_remaining"] == Decimal(40)
+    assert context["total_overpayment"] == Decimal(20)
     assert context["invoices_without_payments"] == 1
     assert dict(context["status_counts"]) == {
         PaymentStatus.PAID: 2,
@@ -298,7 +301,7 @@ def test_statistics_and_objects_without_payments(client, payments):
 
 def test_database_error_returns_service_unavailable(client):
     with patch(
-        "payments.views.Payment.objects.select_related", side_effect=OperationalError
+        "payments.views.Payment.objects.with_related", side_effect=OperationalError
     ):
         response = client.get(reverse("payments:list"))
     assert response.status_code == 503

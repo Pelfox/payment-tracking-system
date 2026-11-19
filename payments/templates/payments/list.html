@@ -12,9 +12,10 @@
             {% if partial_only %}Операции, сумма которых меньше суммы счёта.{% else %}Все сохранённые операции. Выберите плательщика, чтобы открыть подробности платежа.{% endif %}
         </p>
     </div>
-    <a class="btn btn-outline-secondary text-nowrap" href="{% url 'payments:summary' %}">
-        Сводка
-    </a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-primary text-nowrap" href="{% url 'payments:create' %}">Новый платёж</a>
+        <a class="btn btn-outline-secondary text-nowrap" href="{% url 'payments:summary' %}">Сводка</a>
+    </div>
 </div>
 <details class="mb-4"{% if request.GET %} open{% endif %}>
     <summary class="fw-semibold mb-3">Поиск и сортировка</summary>
@@ -79,7 +80,9 @@
                     {% include "payments/includes/date.html" with value=payment.paid_at only %}
                 </td>
                 <td class="pe-3">
+                    {% if payment.is_cancelled %}<span class="badge text-bg-secondary">Отменён</span>{% endif %}
                     {% include "payments/includes/status.html" with status=payment.status_enum only %}
+                    {% if not payment.is_cancelled %}<a class="d-block small mt-1" href="{% url 'payments:update' payment.id %}">Редактировать</a>{% endif %}
                 </td>
             </tr>
             {% endfor %}

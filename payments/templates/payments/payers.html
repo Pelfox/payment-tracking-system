@@ -2,6 +2,7 @@
 {% block title %}Плательщики{% endblock %}
 {% block content %}
 <h1 class="fw-bold">Плательщики</h1>
+<a class="btn btn-primary mb-3" href="{% url 'payments:payer_create' %}">Новый плательщик</a>
 <p class="text-body-secondary">Выберите плательщика, чтобы найти его платежи.</p>
 <ul class="list-group">
     {% for payer in payers %}

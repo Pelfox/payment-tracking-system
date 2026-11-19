@@ -5,7 +5,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Учёт платежей{% endblock %}</title>
+    <title>{% block title %}{{ site_name }}{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'homepage/css/style.css' %}">
@@ -15,6 +15,9 @@
 <body class="bg-body-tertiary d-flex flex-column min-vh-100">
     {% include "includes/navigation.html" %}
     <main class="container flex-grow-1 py-4 py-md-5" id="content">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}" role="status">{{ message }}</div>
+        {% endfor %}
         {% block content %}{% endblock %}
     </main>
 </body>

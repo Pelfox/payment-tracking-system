@@ -3,7 +3,7 @@
     <div class="container site-header-content">
         <a class="site-brand" href="{% url 'homepage:index' %}">
             <img src="{% static 'homepage/img/logo.svg' %}" alt="" class="site-logo" width="40" height="40">
-            <span>Учёт платежей</span>
+            <span>{{ site_name }}</span>
         </a>
         <nav class="site-navigation" aria-label="Основная навигация">
             <a href="{% url 'homepage:index' %}"{% if request.resolver_match.view_name == 'homepage:index' %} aria-current="page"{% endif %}>Главная</a>
@@ -12,7 +12,7 @@
             <a href="{% url 'payments:search' %}"{% if request.resolver_match.view_name == 'payments:search' %} aria-current="page"{% endif %}>Поиск</a>
             <a href="{% url 'payments:partial' %}"{% if request.resolver_match.view_name == 'payments:partial' %} aria-current="page"{% endif %}>Частичная оплата</a>
             <a href="{% url 'payments:payers' %}"{% if request.resolver_match.view_name == 'payments:payers' %} aria-current="page"{% endif %}>Плательщики</a>
-            <a href="{% url 'payments:invoices' %}"{% if request.resolver_match.view_name == 'payments:invoices' %} aria-current="page"{% endif %}>Счета</a>
+            <a href="{% url 'payments:invoices' %}"{% if request.resolver_match.view_name == 'payments:invoices' or request.resolver_match.view_name == 'payments:invoice_detail' %} aria-current="page"{% endif %}>Счета{% if navigation_invoice_count != None %} ({{ navigation_invoice_count }}){% endif %}</a>
         </nav>
     </div>
 </header>

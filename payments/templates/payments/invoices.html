@@ -2,6 +2,7 @@
 {% block title %}Счета{% endblock %}
 {% block content %}
 <h1 class="fw-bold">Счета</h1>
+<a class="btn btn-primary mb-3" href="{% url 'payments:invoice_create' %}">Новый счёт</a>
 <p class="text-body-secondary">Снимки счетов на момент платежей. При изменении суммы история сохраняется.</p>
 <div class="table-responsive bg-body border rounded-3">
     <table class="table align-middle mb-0">
@@ -15,7 +16,7 @@
         <tbody>
             {% for invoice in invoices %}
             <tr>
-                <td>{{ invoice.account_number }}</td>
+                <td><a href="{{ invoice.get_absolute_url }}">{{ invoice.account_number }}</a></td>
                 <td>{{ invoice.payer.full_name }}</td>
                 <td>{{ invoice.amount|floatformat:"2u" }} руб.</td>
             </tr>

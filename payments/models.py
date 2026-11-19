@@ -1,17 +1,28 @@
+# ruff: noqa: RUF012
 from decimal import Decimal
 from uuid import uuid4
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.core.validators import (
+    FileExtensionValidator,
+    MaxValueValidator,
+    MinValueValidator,
+    RegexValidator,
+)
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 from pydantic import ValidationError as DomainValidationError
+from unidecode import unidecode
 
 from payment_tracking_system.models import Invoice as DomainInvoice
 from payment_tracking_system.models import Payer as DomainPayer
 from payment_tracking_system.models import Payment as DomainPayment
 from payment_tracking_system.models import PaymentMethod, PaymentStatus
 from payment_tracking_system.processing import process_payment
+
+from .querysets import PaymentManager
 
 MAX_AMOUNT_CENTS = 999_999_999_999
 NON_BLANK = RegexValidator(r"\S", "Значение не может состоять из пробелов.")
@@ -53,6 +64,10 @@ class Invoice(models.Model):
     amount_cents = models.PositiveBigIntegerField(
         "Сумма счёта, коп.",
         validators=[MinValueValidator(1), MaxValueValidator(MAX_AMOUNT_CENTS)],
+        help_text="Введите сумму в копейках: 10000 означает 100 рублей.",
+    )
+    slug = models.SlugField(
+        "URL-идентификатор", max_length=180, unique=True, editable=False
     )
 
     class Meta:
@@ -82,8 +97,30 @@ class Invoice(models.Model):
     def __str__(self):
         return self.account_number
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(unidecode(self.account_number))[:140] or "invoice"
+            self.slug = f"{base}-{uuid4().hex}"
+            if kwargs.get("update_fields"):
+                kwargs["update_fields"] = set(kwargs["update_fields"]) | {"slug"}
+        return super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("payments:invoice_detail", kwargs={"slug": self.slug})
+
 
 class Payment(models.Model):
+    class Status(models.TextChoices):
+        PAID = PaymentStatus.PAID.value, "Оплачен полностью"
+        PARTIALLY_PAID = PaymentStatus.PARTIALLY_PAID.value, "Частичная оплата"
+        OVERPAID = PaymentStatus.OVERPAID.value, "Переплата"
+
+    class Method(models.TextChoices):
+        CARD = PaymentMethod.CARD.value, "Карта"
+        CASH = PaymentMethod.CASH.value, "Наличные"
+
+    objects = PaymentManager()
+
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     invoice = models.ForeignKey(
         Invoice, on_delete=models.PROTECT, related_name="payments", verbose_name="Счёт"
@@ -91,17 +128,27 @@ class Payment(models.Model):
     amount_cents = models.PositiveBigIntegerField(
         "Сумма платежа, коп.",
         validators=[MinValueValidator(1), MaxValueValidator(MAX_AMOUNT_CENTS)],
+        help_text=(
+            "Сумма одной операции в копейках. Итоги рассчитываются автоматически."
+        ),
     )
     method = models.CharField(
         "Способ оплаты",
         max_length=20,
-        choices=[(m.value, m.value) for m in PaymentMethod],
+        choices=Method.choices,
     )
     paid_at = models.DateTimeField("Дата платежа", default=timezone.now)
+    cancelled_at = models.DateTimeField("Дата отмены записи", null=True, editable=False)
+    receipt = models.ImageField(
+        "Изображение квитанции",
+        upload_to="receipts/%Y/%m/",
+        blank=True,
+        validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp"])],
+    )
     status = models.CharField(
         "Статус",
         max_length=30,
-        choices=[(s.value, s.value) for s in PaymentStatus],
+        choices=Status.choices,
         editable=False,
     )
     commission_cents = models.PositiveBigIntegerField("Комиссия, коп.", editable=False)
@@ -111,6 +158,16 @@ class Payment(models.Model):
     remaining_cents = models.PositiveBigIntegerField("Остаток, коп.", editable=False)
     overpayment_cents = models.PositiveBigIntegerField(
         "Переплата, коп.", editable=False
+    )
+    has_commission = models.GeneratedField(
+        expression=models.Case(
+            models.When(commission_cents__gt=0, then=models.Value(True)),
+            default=models.Value(False),
+            output_field=models.BooleanField(),
+        ),
+        output_field=models.BooleanField(),
+        db_persist=True,
+        verbose_name="Есть комиссия",
     )
 
     class Meta:
@@ -168,6 +225,26 @@ class Payment(models.Model):
     @property
     def status_enum(self):
         return PaymentStatus(self.status)
+
+    @property
+    def is_cancelled(self):
+        return self.cancelled_at is not None
+
+    def cancel(self):
+        """Исключить запись из учёта, сохранив операцию и результаты расчёта."""
+        cancelled_at = timezone.now()
+        changed = (
+            type(self)
+            .objects.active()
+            .filter(pk=self.pk)
+            .update(cancelled_at=cancelled_at)
+        )
+        if changed:
+            self.cancelled_at = cancelled_at
+        return bool(changed)
+
+    def get_absolute_url(self):
+        return reverse("payments:detail", kwargs={"payment_id": self.pk})
 
     def save(self, *args, **kwargs):
         update_fields = kwargs.get("update_fields")

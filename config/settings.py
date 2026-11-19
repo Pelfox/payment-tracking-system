@@ -18,6 +18,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 PAYMENTS_FILE = BASE_DIR / "data" / "payments.json"
 PAYMENTS_DATABASE = BASE_DIR / "data" / "payments.sqlite"
+SITE_NAME = "Учёт платежей"
 
 
 # Quick-start development settings - unsuitable for production
@@ -81,6 +82,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "payments.context_processors.payment_context",
             ],
         },
     },
@@ -137,6 +139,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

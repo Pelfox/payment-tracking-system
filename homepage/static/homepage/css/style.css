@@ -63,6 +63,16 @@
     max-width: 24rem;
 }
 
+.errorlist {
+    color: var(--bs-danger);
+    margin-top: 0.5rem;
+}
+
+.receipt-image {
+    max-height: 40rem;
+    object-fit: contain;
+}
+
 [hidden] {
     display: none !important;
 }

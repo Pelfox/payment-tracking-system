@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Счёт {{ invoice.account_number }}{% endblock %}
+{% block content %}
+<h1 class="fw-bold">Счёт {{ invoice.account_number }}</h1>
+<p>Плательщик: {{ invoice.payer.full_name }}</p>
+<p>Сумма счёта: {{ invoice.amount|floatformat:"2u" }} руб.</p>
+<p class="text-body-secondary">Каждая операция сравнивается с суммой снимка счёта отдельно. Остатки операций не являются накопленным долгом по счёту.</p>
+<h2 class="h4 mt-4">Платежи по счёту</h2>
+<div class="table-responsive bg-body border rounded-3">
+    <table class="table align-middle mb-0">
+        <thead><tr><th>Дата</th><th>Сумма</th><th>Статус</th><th>Подробности</th></tr></thead>
+        <tbody>
+            {% for payment in payments %}
+            <tr>
+                <td>{% include "payments/includes/date.html" with value=payment.paid_at only %}</td>
+                <td>{{ payment.amount|floatformat:"2u" }} руб.</td>
+                <td>{% if payment.is_cancelled %}<span class="badge text-bg-secondary">Отменён</span> {% endif %}{% include "payments/includes/status.html" with status=payment.status_enum only %}</td>
+                <td><a href="{{ payment.get_absolute_url }}">Открыть платёж</a></td>
+            </tr>
+            {% empty %}<tr><td colspan="4">По этому счёту платежей пока нет.</td></tr>{% endfor %}
+        </tbody>
+    </table>
+</div>
+{% include "payments/includes/pagination.html" %}
+<a class="btn btn-outline-secondary mt-3" href="{% url 'payments:invoices' %}">Все счета</a>
+{% endblock %}

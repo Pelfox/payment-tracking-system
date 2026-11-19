@@ -7,6 +7,8 @@
 # Runtime payment data
 /data/*.json*
 /data/*.sqlite*
+/data/backups/
+/data/admin_credentials.txt
 
 ### Linux ###
 *~
@@ -119,6 +121,7 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+/media/
 
 # Flask stuff:
 instance/
