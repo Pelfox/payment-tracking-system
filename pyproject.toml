@@ -7,7 +7,7 @@ authors = [{ name = "Aleksey Demchenkov", email = "contact@pelfox.dev" }]
 requires-python = ">=3.13"
 dependencies = [
     "django>=5.2.8,<5.3",
-    "pillow>=12,<13",
+    "pillow>=12,<14",
     "pydantic>=2.13.5",
     "unidecode>=1.4,<2",
 ]
