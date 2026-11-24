@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Платёж {{ payment.id }}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
 <div class="row g-3 align-items-start mb-4">
     <div class="col-md">
         <h1 class="fw-bold">
-            Информация о платеже
+            {{ page_title }}
         </h1>
         <p class="font-monospace small text-body-secondary text-break mb-0">
             ID: {{ payment.id }}

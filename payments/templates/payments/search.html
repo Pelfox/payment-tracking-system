@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Поиск платежей{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 {% block content %}
-<h1 class="fw-bold">Поиск платежей</h1>
+<h1 class="fw-bold">{{ page_title }}</h1>
 <p class="text-body-secondary">Выберите условия поиска. Даты указаны по московскому времени.</p>
 {% include "payments/includes/search_form.html" %}
 {% if payments %}

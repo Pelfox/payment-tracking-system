@@ -2,7 +2,7 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="mx-auto" style="max-width: 48rem;">
-    <h1 class="fw-bold mb-4">{{ title }}</h1>
+    <h1 class="fw-bold mb-4">{{ page_title }}</h1>
     {% if form.payer and form.invoice %}
     <p class="text-body-secondary">Комиссия, статус и остаток рассчитываются автоматически для каждой операции.</p>
     <p><a href="{% url 'payments:payer_create' %}">Добавить плательщика</a> · <a href="{% url 'payments:invoice_create' %}">Добавить счёт</a></p>

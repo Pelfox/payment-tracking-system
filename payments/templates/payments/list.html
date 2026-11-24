@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}{% if partial_only %}Частичная оплата{% else %}Платежи{% endif %}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column flex-md-row align-items-start justify-content-between gap-3 mb-4">
     <div>
         <h1 class="fw-bold">
-            {% if partial_only %}Частичная оплата{% else %}Платежи{% endif %}
+            {{ page_title }}
         </h1>
         <p class="text-body-secondary mb-0">
             {% if partial_only %}Операции, сумма которых меньше суммы счёта.{% else %}Все сохранённые операции. Выберите плательщика, чтобы открыть подробности платежа.{% endif %}

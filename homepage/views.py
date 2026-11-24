@@ -1,11 +1,13 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
-from django.views.decorators.http import require_safe
+from django.views.generic import TemplateView
 
 
-@require_safe
-def index(request: HttpRequest) -> HttpResponse:
-    return render(request, "homepage/index.html")
+class IndexView(TemplateView):
+    template_name = "homepage/index.html"
+
+    def head(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
 
 
 def page_not_found(request: HttpRequest, exception: Exception) -> HttpResponse:
